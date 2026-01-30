@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Comic Pop Experience</title>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <style>
+        /* Make the game fill the entire browser window */
+        html, body {
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background-color: black;
+        }
+        #renderCanvas {
+            width: 100%;
+            height: 100%;
+            touch-action: none; /* Prevents scrolling while tapping */
+        }
+    </style>
+</head>
+<body>
+    <canvas id="renderCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById("renderCanvas");
+        const engine = new BABYLON.Engine(canvas, true);
+
+        // --- YOUR FORMULA START ---
+        const createScene = function () {
+            var scene = new BABYLON.Scene(engine);
+
+            // 1. Camera & Light
+            var camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 3, -10), scene);
+            camera.setTarget(BABYLON.Vector3.Zero());
+            camera.attachControl(canvas, true);
+
+            var light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+
+            // 2. Image URLs (Direct Links)
+            var imageURLs = [
+                "https://i.imgur.com/I9KRaQP.png", 
+                "https://i.imgur.com/2F7DxDo.png", 
+                "https://i.imgur.com/4ByfeUt.png"  
+            ];
+
+            // 3. Pre-load Textures
+            var textures = imageURLs.map(url => {
+                var tex = new BABYLON.Texture(url, scene);
+                tex.hasAlpha = true;
+                return tex;
+            });
+
+            var currentImageIndex = 0;
+
+            // 4. Create the Comic Plane
+            var comicPlane = BABYLON.MeshBuilder.CreatePlane("pop", { size: 1 }, scene);
+            comicPlane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
+            comicPlane.position.z = 1;
+            comicPlane.scaling.set(0.01, 0.01, 0.01);
+
+            // 5. Material Setup
+            var material = new BABYLON.StandardMaterial("popMat", scene);
+            material.diffuseTexture = textures[currentImageIndex];
+            material.useAlphaFromDiffuseTexture = true;
+            material.alpha = 1;
+            material.backFaceCulling = false; 
+            comicPlane.material = material;
+
+            // 6. Logic Variables
+            var isPopped = false;
+            var currentScale = 0;
+            var maxScale = 5;
+
+            // 7. Animation Loop
+            scene.registerBeforeRender(function () {
+                if (isPopped) {
+                    if (currentScale < 1) {
+                        currentScale += 0.07;
+                        var s = currentScale * maxScale;
+                        comicPlane.scaling.set(s, s, s);
+                    } else if (material.alpha > 0) {
+                        material.alpha -= 0.02;
+                    }
+                }
+            });
+
+            // 8. Interaction
+            scene.onPointerDown = function () {
+                material.alpha = 1;
+                currentScale = 0;
+                comicPlane.scaling.set(0.01, 0.01, 0.01);
+                isPopped = true;
+
+                material.diffuseTexture = textures[currentImageIndex];
+                currentImageIndex = (currentImageIndex + 1) % textures.length;
+            };
+
+            return scene;
+        };
+        // --- YOUR FORMULA END ---
+
+        const scene = createScene();
+
+        // Start the engine's render loop to actually draw the scene
+        engine.runRenderLoop(function () {
+            scene.render();
+        });
+
+        // Watch for browser resizing
+        window.addEventListener("resize", function () {
+            engine.resize();
+        });
+    </script>
+</body>
+</html>
